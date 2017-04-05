@@ -20,19 +20,21 @@ public class OrderGenerator implements Runnable {
 	public void run() {
 
 		RabbitClient client = RabbitClient.getInstance();
-		while (!stopped){
+		int total =0;
+                while (!stopped){
 			if (generating){
 				Random random = new Random();
 				String state = HeatMap.states[random.nextInt(HeatMap.states.length)];
-				int value = (1+random.nextInt(4))*10;
+				int value = (1)*10;
 				Order order = new Order();
 				order.setAmount(value);
+                                total = total +value;
+                                System.out.println(" total sent: "+ total);
 				order.setState(state);
 				try {
 					client.post(order);
 				} catch (IOException e1) {
-					throw new RuntimeException(e1);
-				}
+		                         return;}
 			}
 			else{
 				try{

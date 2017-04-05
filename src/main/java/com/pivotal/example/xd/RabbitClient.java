@@ -16,6 +16,8 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.cloud.Cloud;
 import org.springframework.cloud.CloudException;
@@ -79,6 +81,13 @@ public class RabbitClient {
 	    				rabbitTemplate.setConnectionFactory(ccf);
 	    				
 	    				rabbitTemplate.afterPropertiesSet();
+                                        RetryTemplate retryTemplate = new RetryTemplate();
+                                        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+                                        backOffPolicy.setInitialInterval(500);
+                                        backOffPolicy.setMultiplier(10.0);
+                                        backOffPolicy.setMaxInterval(10000);
+                                        retryTemplate.setBackOffPolicy(backOffPolicy);
+                                        rabbitTemplate.setRetryTemplate(retryTemplate);
 	    					    				
 	    			}
 	    			catch(Exception e){
@@ -130,12 +139,13 @@ public class RabbitClient {
 		SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(ccf);		
 		container.setQueues(orderProcQueue);
 		container.setMessageListener(new MessageListener() {
-			
+			int count=0;
 			@Override
 			public void onMessage(Message message) {
 				//for now simply log the order
 				Order order = Order.fromBytes(message.getBody());
-				logger.info("Process Order: " + order.getState()+":"+order.getAmount());
+                                count++;
+				System.out.println("Rec'd count : "+ count +" Process Order: " + order.getState()+":"+order.getAmount());
 			}
 		});
 		container.setAcknowledgeMode(AcknowledgeMode.AUTO);
